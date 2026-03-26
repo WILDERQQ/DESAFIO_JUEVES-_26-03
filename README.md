@@ -21,7 +21,7 @@ La página `prueba.html` permite:
 - Ver las fórmulas Excel utilizadas
 
 ## 🔗 Ver en línea
-[GitHub Pages](https://TU-USUARIO.github.io/DESAFIO_JUEVES_-_26-03/prueba.html)
+[GitHub Pages](https://TU-USUARIO.github.io/DESAFIO_JUEVES_-_26-03/
 
 ## 📥 Descargar Excel
 [Haz clic aquí](./jueves%20LU.xlsx) para descargar el archivo Excel
