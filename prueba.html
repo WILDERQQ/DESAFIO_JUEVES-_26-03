@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factorización LU - Doolittle, Crout y Cholesky</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            padding: 20px;
+        }
+        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: -20px -20px 20px -20px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-top: 20px;
+        }
+        h3 {
+            color: #34495e;
+            margin: 10px 0;
+        }
+        .config-panel {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            align-items: center;
+        }
+        .dimension-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dimension-selector label {
+            font-weight: bold;
+        }
+        .dimension-selector input {
+            width: 70px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .method-selector {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .method-selector label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .btn-excel {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        .btn-reset {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .btn-example {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        .matrix-input {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: white;
+            display: inline-block;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        input.matrix-cell, input.vector-cell {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .result-table {
+            overflow-x: auto;
+        }
+        .error {
+            color: #e74c3c;
+            background: #fde8e8;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #27ae60;
+            background: #e8f8f0;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .flex-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .matrix-container {
+            flex: 1;
+            min-width: 280px;
+            overflow-x: auto;
+        }
+        
+        /* Modal para Excel */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 1400px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            animation: modalFadeIn 0.3s;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            border: none;
+        }
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.2s;
+        }
+        .close-modal:hover {
+            color: #e74c3c;
+        }
+        .excel-table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .excel-table {
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .excel-table td, .excel-table th {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+            text-align: center;
+            min-width: 70px;
+        }
+        .excel-table th {
+            background: #2c3e50;
+            color: white;
+        }
+        .excel-table .step-title {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        .excel-table .formula-cell {
+            background: #f9e79f;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 8px 16px;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @media (max-width: 768px) {
+            input.matrix-cell, input.vector-cell {
+                width: 55px;
+                font-size: 11px;
+            }
+            th, td {
+                padding: 4px;
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📐 Factorización LU | Doolittle · Crout · Cholesky</h1>
+        
+        <div class="config-panel">
+            <div class="dimension-selector">
+                <label>📏 Dimensión n:</label>
+                <input type="number" id="dimension" min="1" max="6" value="3">
+            </div>
+            <div class="method-selector">
+                <label>
+                    <input type="radio" name="method" value="doolittle" checked> Doolittle
+                </label>
+                <label>
+                    <input type="radio" name="method" value="crout"> Crout
+                </label>
+                <label>
+                    <input type="radio" name="method" value="cholesky"> Cholesky
+                </label>
+            </div>
+            <button id="btn-generate">🔄 Generar Matriz</button>
+            <button id="btn-solve">✅ Resolver</button>
+            <button id="btn-example" class="btn-example">📋 Ejemplo (sistema 3x3)</button>
+            <button id="btn-excel" class="btn-excel">📊 Ver Factorización LU en Excel</button>
+            <button id="btn-reset" class="btn-reset">🗑️ Limpiar</button>
+        </div>
+
+        <div class="matrix-input">
+            <div class="flex-row">
+                <div class="matrix-container">
+                    <h3>📊 Matriz A</h3>
+                    <div id="matrix-a"></div>
+                </div>
+                <div class="matrix-container">
+                    <h3>📌 Vector b</h3>
+                    <div id="vector-b"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="results">
+            <h2>📈 Resultados</h2>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <!-- Modal para visualizar Excel -->
+    <div id="excelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Factorización LU - Estructura Excel</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="tab-buttons">
+                <div class="tab-btn active" data-tab="tab-u">📐 Matrices U (paso a paso)</div>
+                <div class="tab-btn" data-tab="tab-l">🔽 Matriz L (multiplicadores)</div>
+                <div class="tab-btn" data-tab="tab-solution">✅ Resolución del sistema</div>
+                <div class="tab-btn" data-tab="tab-formulas">📝 Fórmulas Excel</div>
+            </div>
+            
+            <div id="tab-u" class="tab-content active">
+                <h3>Proceso de eliminación gaussiana para obtener U</h3>
+                <div class="excel-table-container" id="excel-u-content"></div>
+            </div>
+            
+            <div id="tab-l" class="tab-content">
+                <h3>Matriz L (multiplicadores)</h3>
+                <div class="excel-table-container" id="excel-l-content"></div>
+            </div>
+            
+            <div id="tab-solution" class="tab-content">
+                <h3>Resolución: L·d = b y U·x = d</h3>
+                <div class="excel-table-container" id="excel-solution-content"></div>
+            </div>
+            
+            <div id="tab-formulas" class="tab-content">
+                <h3>Fórmulas clave para la factorización LU en Excel</h3>
+                <div class="excel-table-container" id="excel-formulas-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let n = 3;
+        let A = [];
+        let b = [];
+
+        // Matriz por defecto (sistema ejemplo)
+        const defaultA = [
+            [8, 4, 1],
+            [2, 5, 4],
+            [2, -1, 6]
+        ];
+        const defaultB = [11, 4, 7];
+
+        function initDefault() {
+            A = JSON.parse(JSON.stringify(defaultA));
+            b = [...defaultB];
+        }
+
+        function generateIdentityMatrix() {
+            const matrix = [];
+            for (let i = 0; i < n; i++) {
+                matrix[i] = [];
+                for (let j = 0; j < n; j++) {
+                    matrix[i][j] = (i === j) ? 1 : 0;
+                }
+            }
+            return matrix;
+        }
+
+        function generateDefaultVector() {
+            const vector = [];
+            for (let i = 0; i < n; i++) {
+                vector[i] = i + 1;
+            }
+            return vector;
+        }
+
+        function renderMatrixA() {
+            const container = document.getElementById('matrix-a');
+            let html = ' <table>';
+            html += '<thead><tr><th></th>';
+            for (let j = 0; j < n; j++) {
+                html += `<th>x<sub>${j+1}</sub></th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let i = 0; i < n; i++) {
+                html += '<tr>';
+                html += `<th>Eq ${i+1}</th>`;
+                for (let j = 0; j < n; j++) {
+                    html += `<td><input type="number" class="matrix-cell" data-row="${i}" data-col="${j}" value="${A[i][j]}"></td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            document.querySelectorAll('.matrix-cell').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const row = parseInt(e.target.dataset.row);
+                    const col = parseInt(e.target.dataset.col);
+                    A[row][col] = parseFloat(e.target.value) || 0;
+                });
+            });
+        }
+
+        function renderVectorB() {
+            const container = document.getElementById('vector-b');
+            let html = '<table>';
+            html += '<thead><tr><th>i</th><th>b<sub>i</sub></th></tr></thead><tbody>';
+            for (let i = 0; i < n; i++) {
+                html += `<tr>
+                            <th>${i+1}</th>
+                            <td><input type="number" class="vector-cell" data-row="${i}" value="${b[i]}"></td>
+                         </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            document.querySelectorAll('.vector-cell').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const row = parseInt(e.target.dataset.row);
+                    b[row] = parseFloat(e.target.value) || 0;
+                });
+            });
+        }
+
+        function updateMatrixAndVector() {
+            n = parseInt(document.getElementById('dimension').value);
+            if (n === 3) {
+                A = JSON.parse(JSON.stringify(defaultA));
+                b = [...defaultB];
+            } else {
+                A = generateIdentityMatrix();
+                b = generateDefaultVector();
+            }
+            renderMatrixA();
+            renderVectorB();
+        }
+
+        // ==================== FACTORIZACIONES ====================
+        
+        function factorizeDoolittle(A) {
+            const n = A.length;
+            const L = Array(n).fill().map(() => Array(n).fill(0));
+            const U = Array(n).fill().map(() => Array(n).fill(0));
+            
+            for (let i = 0; i < n; i++) {
+                L[i][i] = 1;
+                for (let j = i; j < n; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < i; k++) {
+                        sum += L[i][k] * U[k][j];
+                    }
+                    U[i][j] = A[i][j] - sum;
+                }
+                for (let j = i + 1; j < n; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < i; k++) {
+                        sum += L[j][k] * U[k][i];
+                    }
+                    if (Math.abs(U[i][i]) < 1e-12) throw new Error('Pivote nulo.');
+                    L[j][i] = (A[j][i] - sum) / U[i][i];
+                }
+            }
+            return { L, U };
+        }
+
+        function factorizeCrout(A) {
+            const n = A.length;
+            const L = Array(n).fill().map(() => Array(n).fill(0));
+            const U = Array(n).fill().map(() => Array(n).fill(0));
+            
+            for (let i = 0; i < n; i++) {
+                U[i][i] = 1;
+                for (let j = i; j < n; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < i; k++) {
+                        sum += L[j][k] * U[k][i];
+                    }
+                    L[j][i] = A[j][i] - sum;
+                }
+                for (let j = i + 1; j < n; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < i; k++) {
+                        sum += L[i][k] * U[k][j];
+                    }
+                    if (Math.abs(L[i][i]) < 1e-12) throw new Error('Pivote nulo.');
+                    U[i][j] = (A[i][j] - sum) / L[i][i];
+                }
+            }
+            return { L, U };
+        }
+
+        function factorizeCholesky(A) {
+            const n = A.length;
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (Math.abs(A[i][j] - A[j][i]) > 1e-10) {
+                        throw new Error('La matriz no es simétrica.');
+                    }
+                }
+            }
+            const L = Array(n).fill().map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < j; k++) {
+                        sum += L[i][k] * L[j][k];
+                    }
+                    if (i === j) {
+                        const val = A[i][i] - sum;
+                        if (val <= 0) throw new Error('Matriz no definida positiva.');
+                        L[i][i] = Math.sqrt(val);
+                    } else {
+                        L[i][j] = (A[i][j] - sum) / L[j][j];
+                    }
+                }
+            }
+            const U = Array(n).fill().map(() => Array(n).fill(0));
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    U[i][j] = L[j][i];
+                }
+            }
+            return { L, U };
+        }
+
+        function solveLower(L, b) {
+            const n = L.length;
+            const y = Array(n).fill(0);
+            for (let i = 0; i < n; i++) {
+                let sum = 0;
+                for (let j = 0; j < i; j++) sum += L[i][j] * y[j];
+                y[i] = (b[i] - sum) / L[i][i];
+            }
+            return y;
+        }
+
+        function solveUpper(U, y) {
+            const n = U.length;
+            const x = Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = 0;
+                for (let j = i + 1; j < n; j++) sum += U[i][j] * x[j];
+                x[i] = (y[i] - sum) / U[i][i];
+            }
+            return x;
+        }
+
+        function solveWithFactorization(A, b, method) {
+            let L, U;
+            switch(method) {
+                case 'doolittle': ({ L, U } = factorizeDoolittle(A)); break;
+                case 'crout': ({ L, U } = factorizeCrout(A)); break;
+                case 'cholesky': ({ L, U } = factorizeCholesky(A)); break;
+                default: throw new Error('Método no válido');
+            }
+            const y = solveLower(L, b);
+            const x = solveUpper(U, y);
+            return { L, U, y, x };
+        }
+
+        function formatMatrixHTML(matrix, decimals = 6) {
+            const n = matrix.length;
+            let html = '<table class="excel-table"><thead><tr><th></th>';
+            for (let j = 0; j < n; j++) html += `<th>${j+1}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let i = 0; i < n; i++) {
+                html += `<tr><th>${i+1}</th>`;
+                for (let j = 0; j < n; j++) {
+                    let val = Math.abs(matrix[i][j]) < 1e-10 ? 0 : matrix[i][j];
+                    html += `<td>${val.toFixed(decimals)}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function formatVectorHTML(vector, decimals = 6) {
+            let html = '<table class="excel-table"><thead><tr><th>i</th><th>Valor</th></tr></thead><tbody>';
+            for (let i = 0; i < vector.length; i++) {
+                let val = Math.abs(vector[i]) < 1e-10 ? 0 : vector[i];
+                html += `<tr><th>${i+1}</th><td>${val.toFixed(decimals)}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function solve() {
+            const resultsDiv = document.getElementById('results');
+            const method = document.querySelector('input[name="method"]:checked').value;
+            try {
+                const currentA = A;
+                const currentB = b;
+                const methodNames = {
+                    doolittle: 'Doolittle (L con diagonal 1)',
+                    crout: 'Crout (U con diagonal 1)',
+                    cholesky: 'Cholesky (A = L·Lᵀ)'
+                };
+                let html = `<div class="success">✅ Método: <strong>${methodNames[method]}</strong></div>`;
+                const { L, U, y, x } = solveWithFactorization(currentA, currentB, method);
+                html += `<div class="flex-row">`;
+                html += `<div class="matrix-container"><h3>📉 Matriz L</h3>${formatMatrixHTML(L)}</div>`;
+                html += `<div class="matrix-container"><h3>📈 Matriz U</h3>${formatMatrixHTML(U)}</div>`;
+                html += `</div>`;
+                html += `<div class="flex-row" style="margin-top: 20px;">`;
+                html += `<div class="matrix-container"><h3>📌 Vector d (Ly = b)</h3>${formatVectorHTML(y)}</div>`;
+                html += `<div class="matrix-container"><h3>✅ Solución x</h3>${formatVectorHTML(x)}</div>`;
+                html += `</div>`;
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // ==================== VISUALIZACIÓN EXCEL ====================
+        
+        function generateExcelView() {
+            const currentA = A;
+            const currentB = b;
+            const nLocal = currentA.length;
+            
+            // Calcular factorización Doolittle paso a paso
+            let U_step0 = JSON.parse(JSON.stringify(currentA));
+            let multipliers = [];
+            
+            // Paso 1: calcular multiplicadores primera columna
+            let f21 = currentA[1][0] / currentA[0][0];
+            let f31 = currentA[2][0] / currentA[0][0];
+            multipliers.push({row:2, col:1, val: f21});
+            multipliers.push({row:3, col:1, val: f31});
+            
+            let U_step1 = JSON.parse(JSON.stringify(U_step0));
+            for (let j = 0; j < nLocal; j++) {
+                U_step1[1][j] = currentA[1][j] - f21 * currentA[0][j];
+                U_step1[2][j] = currentA[2][j] - f31 * currentA[0][j];
+            }
+            
+            // Paso 2: calcular f32
+            let f32 = U_step1[2][1] / U_step1[1][1];
+            multipliers.push({row:3, col:2, val: f32});
+            
+            let U_step2 = JSON.parse(JSON.stringify(U_step1));
+            for (let j = 1; j < nLocal; j++) {
+                U_step2[2][j] = U_step1[2][j] - f32 * U_step1[1][j];
+            }
+            
+            // Resolver sistema
+            const L = [[1,0,0], [f21,1,0], [f31,f32,1]];
+            const y = solveLower(L, currentB);
+            const x = solveUpper(U_step2, y);
+            
+            // Generar HTML para pestaña U
+            let uHtml = '<table class="excel-table">';
+            uHtml += '<thead><tr><th>Paso</th><th>Col1</th><th>Col2</th><th>Col3</th></tr></thead><tbody>';
+            uHtml += `<tr class="step-title"><td><strong>u0 (A original)</strong></td><td>${U_step0[0][0]}</td><td>${U_step0[0][1]}</td><td>${U_step0[0][2]}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step0[1][0]}</td><td>${U_step0[1][1]}</td><td>${U_step0[1][2]}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step0[2][0]}</td><td>${U_step0[2][1]}</td><td>${U_step0[2][2]}</td></tr>`;
+            uHtml += `<tr class="step-title"><td><strong>u1 (después f21, f31)</strong></td><td>${U_step1[0][0]}</td><td>${U_step1[0][1]}</td><td>${U_step1[0][2]}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step1[1][0].toFixed(6)}</td><td>${U_step1[1][1].toFixed(6)}</td><td>${U_step1[1][2].toFixed(6)}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step1[2][0].toFixed(6)}</td><td>${U_step1[2][1].toFixed(6)}</td><td>${U_step1[2][2].toFixed(6)}</td></tr>`;
+            uHtml += `<tr class="step-title"><td><strong>u2 (U final)</strong></td><td>${U_step2[0][0]}</td><td>${U_step2[0][1]}</td><td>${U_step2[0][2]}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step2[1][0].toFixed(6)}</td><td>${U_step2[1][1].toFixed(6)}</td><td>${U_step2[1][2].toFixed(6)}</td></tr>`;
+            uHtml += `<tr><td></td><td>${U_step2[2][0].toFixed(6)}</td><td>${U_step2[2][1].toFixed(6)}</td><td>${U_step2[2][2].toFixed(6)}</td></tr>`;
+            uHtml += '</tbody></table>';
+            document.getElementById('excel-u-content').innerHTML = uHtml;
+            
+            // Pestaña L
+            let lHtml = '<table class="excel-table">';
+            lHtml += '<thead><tr><th>Multiplicador</th><th>Valor</th><th>Fórmula</th></tr></thead><tbody>';
+            lHtml += `<tr><td>f21 = L(2,1)</td><td>${f21.toFixed(6)}</td><td>= A(2,1)/A(1,1)</td></tr>`;
+            lHtml += `<tr><td>f31 = L(3,1)</td><td>${f31.toFixed(6)}</td><td>= A(3,1)/A(1,1)</td></tr>`;
+            lHtml += `<tr><td>f32 = L(3,2)</td><td>${f32.toFixed(6)}</td><td>= U1(3,2)/U1(2,2)</td></tr>`;
+            lHtml += '</tbody></table>';
+            lHtml += '<br><h4>Matriz L completa:</h4>';
+            lHtml += formatMatrixHTML(L, 6);
+            document.getElementById('excel-l-content').innerHTML = lHtml;
+            
+            // Pestaña solución
+            let solHtml = '<h4>Paso 1: Resolver L·d = b</h4>';
+            solHtml += '<table class="excel-table"><thead><tr><th>Ecuación</th><th>d</th></tr></thead><tbody>';
+            solHtml += `<tr><td>d1 = b1</td><td>${y[0].toFixed(6)}</td></tr>`;
+            solHtml += `<tr><td>d2 = b2 - f21·d1</td><td>${y[1].toFixed(6)}</td></tr>`;
+            solHtml += `<tr><td>d3 = b3 - f31·d1 - f32·d2</td><td>${y[2].toFixed(6)}</td></tr>`;
+            solHtml += '</tbody></table>';
+            solHtml += '<h4>Paso 2: Resolver U·x = d</h4>';
+            solHtml += '<table class="excel-table"><thead><tr><th>Ecuación</th><th>x</th></tr></thead><tbody>';
+            solHtml += `<tr><td>x3 = d3 / U(3,3)</td><td>${x[2].toFixed(6)}</td></tr>`;
+            solHtml += `<tr><td>x2 = (d2 - U(2,3)·x3) / U(2,2)</td><td>${x[1].toFixed(6)}</td></tr>`;
+            solHtml += `<tr><td>x1 = (d1 - U(1,2)·x2 - U(1,3)·x3) / U(1,1)</td><td>${x[0].toFixed(6)}</td></tr>`;
+            solHtml += '</tbody></table>';
+            document.getElementById('excel-solution-content').innerHTML = solHtml;
+            
+            // Pestaña fórmulas
+            let formulasHtml = `
+            <table class="excel-table">
+                <thead><tr><th>Celda</th><th>Fórmula</th><th>Descripción</th></tr></thead>
+                <tbody>
+                    <tr><td>J25</td><td class="formula-cell">=D20/D19</td><td>f21 = a21/a11</td></tr>
+                    <tr><td>J26</td><td class="formula-cell">=D21/D19</td><td>f31 = a31/a11</td></tr>
+                    <tr><td>D25</td><td class="formula-cell">=D20 + (-J25)*D19</td><td>u1(2,1) = 0</td></tr>
+                    <tr><td>E25</td><td class="formula-cell">=E20 + (-J25)*E19</td><td>u1(2,2) = a22 - f21·a12</td></tr>
+                    <tr><td>F25</td><td class="formula-cell">=F20 + (-J25)*F19</td><td>u1(2,3) = a23 - f21·a13</td></tr>
+                    <tr><td>K26</td><td class="formula-cell">=E26/E25</td><td>f32 = u1(3,2)/u1(2,2)</td></tr>
+                    <tr><td>D32</td><td class="formula-cell">=D26 + (-K26)*D25</td><td>u2(3,1) = 0</td></tr>
+                    <tr><td>E32</td><td class="formula-cell">=E26 + (-K26)*E25</td><td>u2(3,2) = 0</td></tr>
+                    <tr><td>F32</td><td class="formula-cell">=F26 + (-K26)*F25</td><td>u2(3,3) = u1(3,3) - f32·u1(2,3)</td></tr>
+                </tbody>
+            </table>
+            `;
+            document.getElementById('excel-formulas-content').innerHTML = formulasHtml;
+        }
+        
+        // Modal Excel
+        const modal = document.getElementById('excelModal');
+        const btnExcel = document.getElementById('btn-excel');
+        const closeModal = document.querySelector('.close-modal');
+        
+        btnExcel.addEventListener('click', () => {
+            generateExcelView();
+            modal.style.display = 'block';
+        });
+        
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+        
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // Eventos
+        document.getElementById('dimension').addEventListener('change', updateMatrixAndVector);
+        document.getElementById('btn-generate').addEventListener('click', updateMatrixAndVector);
+        document.getElementById('btn-solve').addEventListener('click', solve);
+        document.getElementById('btn-example').addEventListener('click', () => {
+            n = 3;
+            document.getElementById('dimension').value = 3;
+            initDefault();
+            renderMatrixA();
+            renderVectorB();
+        });
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            updateMatrixAndVector();
+            document.getElementById('results').innerHTML = '';
+        });
+        
+        initDefault();
+        renderMatrixA();
+        renderVectorB();
+    </script>
+</body>
+</html>
